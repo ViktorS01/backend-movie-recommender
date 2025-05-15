@@ -1,4 +1,11 @@
-import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { MoviesService } from './movies.service';
@@ -15,6 +22,18 @@ export class MoviesController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('/import')
+  importMovies(): void {
+    this.movieService.importMovies();
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('/recommendations')
+  getRecommendations() {
+    return this.movieService.findRecommendations();
+  }
+
+  @UseGuards(AuthGuard)
   @Get(':id')
   getOne(@Param('id') id: number) {
     return this.movieService.findOne(id);
@@ -24,11 +43,5 @@ export class MoviesController {
   @Delete(':id')
   delete(@Param('id') id: number): void {
     this.movieService.remove(id);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('/import')
-  importMovies(): void {
-    this.movieService.importMovies();
   }
 }

@@ -1,10 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
+import { Movie } from 'src/typeorm/entities/movies.entity';
+import { MovieType } from 'src/movies/dto/movies.dto';
+
 import * as fs from 'fs';
 import * as path from 'path';
-import { parse } from 'csv-parse';
-import { Movie } from 'src/typeorm/entities/movies.entity';
+import * as csvParse from 'csv-parse';
+
+import {
+  init,
+  moviesKeywordsPromise,
+  moviesMetaDataPromise,
+  ratingsPromise,
+} from 'src/strategies';
 
 @Injectable()
 export class MoviesService {
@@ -13,11 +23,10 @@ export class MoviesService {
     private moviesRepository: Repository<Movie>,
   ) {}
 
-  /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   async importMovies(): Promise<void> {
     const filePath = path.resolve('src/data/movies_metadata.csv');
     const fileStream = fs.createReadStream(filePath);
-    const csvParser = parse({
+    const csvParser = csvParse.parse({
       columns: true,
       delimiter: ',',
       relax_quotes: true,
@@ -60,7 +69,7 @@ export class MoviesService {
   async findAll(
     page: number = 1,
     limit: number = 10,
-  ): Promise<{ data: Movie[]; total: number }> {
+  ): Promise<{ data: MovieType[]; total: number }> {
     const [data, total] = await this.moviesRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
@@ -68,11 +77,21 @@ export class MoviesService {
 
     return { data, total };
   }
-  async findOne(id: number): Promise<Movie | null> {
+  async findOne(id: number): Promise<MovieType | null> {
     return await this.moviesRepository.findOneBy({ id });
   }
 
   async remove(id: number): Promise<void> {
     await this.moviesRepository.delete(id);
+  }
+
+  async findRecommendations(): Promise<MovieType[]> {
+    Promise.all([
+      moviesMetaDataPromise,
+      moviesKeywordsPromise,
+      ratingsPromise,
+    ]).then(init);
+
+    return await this.moviesRepository.findBy({ id: 2 });
   }
 }

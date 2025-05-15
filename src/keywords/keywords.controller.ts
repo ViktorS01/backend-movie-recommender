@@ -15,6 +15,12 @@ export class KeywordsController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('/import')
+  importKeywords(): void {
+    this.keywordsService.importKeywords();
+  }
+
+  @UseGuards(AuthGuard)
   @Get(':id')
   getOne(@Param('id') id: number) {
     return this.keywordsService.findOne(id);
@@ -24,11 +30,5 @@ export class KeywordsController {
   @Delete(':id')
   delete(@Param('id') id: number): void {
     this.keywordsService.remove(id);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('/import')
-  importKeywords(): void {
-    this.keywordsService.importKeywords();
   }
 }

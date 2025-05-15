@@ -12,19 +12,19 @@ export class Movie extends BaseEntity {
   budget: number;
 
   @Column('text', { nullable: true })
-  production_companies: object[];
+  production_companies: string;
 
   @Column('text', { nullable: true })
-  production_countries: object[];
+  production_countries: string;
 
   @Column('text', { nullable: true })
-  belongs_to_collection: object;
+  belongs_to_collection: string;
 
   @Column('text', { nullable: true })
-  genres: object[];
+  genres: string;
 
   @Column('text', { nullable: true })
-  spoken_languages: object[];
+  spoken_languages: string;
 
   @Column({ nullable: true })
   homepage: string;

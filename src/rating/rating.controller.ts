@@ -15,6 +15,13 @@ export class RatingController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('/import')
+  importRatings(): void {
+    console.log(123);
+    this.ratingService.importRatings();
+  }
+
+  @UseGuards(AuthGuard)
   @Get(':id')
   getOne(@Param('id') id: number) {
     return this.ratingService.findOne(id);
@@ -24,12 +31,5 @@ export class RatingController {
   @Delete(':id')
   delete(@Param('id') id: number): void {
     this.ratingService.remove(id);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('/import')
-  importRatings(): void {
-    console.log(123);
-    this.ratingService.importRatings();
   }
 }
