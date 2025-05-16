@@ -10,8 +10,8 @@ export class RatingController {
 
   @UseGuards(AuthGuard)
   @Get()
-  getAll(@Param('page') page: number, @Param('limit') limit: number) {
-    return this.ratingService.findAll(page, limit);
+  getAll() {
+    return this.ratingService.findAll();
   }
 
   @UseGuards(AuthGuard)

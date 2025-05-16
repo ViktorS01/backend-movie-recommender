@@ -9,13 +9,9 @@ import {
   predictWithCfUserBased,
 } from './collaborativeFiltering';
 import { evaluateStrategy } from './evaluate';
-import { getMovieIndexByTitle } from './common';
 
 let MOVIES_META_DATA = {};
 let MOVIES_KEYWORDS = {};
-let RATINGS = [];
-
-let ME_USER_ID = 0;
 
 export let moviesMetaDataPromise = new Promise((resolve) =>
   fs
@@ -31,14 +27,6 @@ export let moviesKeywordsPromise = new Promise((resolve) =>
     .pipe(csv({ headers: true }))
     .on('data', fromKeywordsFile)
     .on('end', () => resolve(MOVIES_KEYWORDS)),
-);
-
-export let ratingsPromise = new Promise((resolve) =>
-  fs
-    .createReadStream('./src/data/ratings_small.csv')
-    .pipe(csv({ headers: true }))
-    .on('data', fromRatingsFile)
-    .on('end', () => resolve(RATINGS)),
 );
 
 function fromMetaDataFile(row) {
@@ -67,19 +55,13 @@ function fromKeywordsFile(row) {
   };
 }
 
-function fromRatingsFile(row) {
-  RATINGS.push(row);
-}
-
-console.log('Unloading data from files ... \n');
-
-// Promise.all([
-//   moviesMetaDataPromise,
-//   moviesKeywordsPromise,
-//   ratingsPromise,
-// ]).then(init);
-
-export function init([moviesMetaData, moviesKeywords, ratings]) {
+export function init([
+  moviesMetaData,
+  moviesKeywords,
+  ratings,
+  ME_USER_ID,
+  title,
+]) {
   /* ------------ */
   //  Preparation //
   /* -------------*/
@@ -89,32 +71,8 @@ export function init([moviesMetaData, moviesKeywords, ratings]) {
     moviesKeywords,
   );
 
-  let ME_USER_RATINGS = [
-    addUserRating(
-      ME_USER_ID,
-      'Terminator 3: Rise of the Machines',
-      '5.0',
-      MOVIES_IN_LIST,
-    ),
-    addUserRating(ME_USER_ID, 'Jarhead', '4.0', MOVIES_IN_LIST),
-    addUserRating(
-      ME_USER_ID,
-      'Back to the Future Part II',
-      '3.0',
-      MOVIES_IN_LIST,
-    ),
-    addUserRating(ME_USER_ID, 'Jurassic Park', '4.0', MOVIES_IN_LIST),
-    addUserRating(ME_USER_ID, 'Reservoir Dogs', '3.0', MOVIES_IN_LIST),
-    addUserRating(ME_USER_ID, 'Men in Black II', '3.0', MOVIES_IN_LIST),
-    addUserRating(ME_USER_ID, 'Bad Boys II', '5.0', MOVIES_IN_LIST),
-    addUserRating(ME_USER_ID, 'Sissi', '1.0', MOVIES_IN_LIST),
-    addUserRating(ME_USER_ID, 'Titanic', '1.0', MOVIES_IN_LIST),
-  ];
-
-  const { ratingsGroupedByUser, ratingsGroupedByMovie } = prepareRatings([
-    ...ME_USER_RATINGS,
-    ...ratings,
-  ]);
+  const { ratingsGroupedByUser, ratingsGroupedByMovie } =
+    prepareRatings(ratings);
 
   /* ----------------------------- */
   //  Linear Regression Prediction //
@@ -146,12 +104,10 @@ export function init([moviesMetaData, moviesKeywords, ratings]) {
   console.log('(B) Content-Based Prediction ... \n');
 
   console.log('(1) Computing Cosine Similarity \n');
-  const title = 'Batman Begins';
-  const contentBasedRecommendation = predictWithContentBased(
-    X,
-    MOVIES_IN_LIST,
-    title,
-  );
+
+  const contentBasedRecommendation = title
+    ? predictWithContentBased(X, MOVIES_IN_LIST, title)
+    : [];
 
   console.log(`(2) Prediction based on "${title}" \n`);
   console.log(sliceAndDice(contentBasedRecommendation, MOVIES_BY_ID, 10, true));
@@ -230,23 +186,22 @@ export function init([moviesMetaData, moviesKeywords, ratings]) {
     k: 10,
   });
 
-  console.log('\n');
-  console.log('End ...');
+  return [
+    ...sliceAndDice(
+      linearRegressionBasedRecommendation,
+      MOVIES_BY_ID,
+      5,
+      false,
+    ),
+    ...sliceAndDice(contentBasedRecommendation, MOVIES_BY_ID, 5, false),
+    ...sliceAndDice(cfUserBasedRecommendation, MOVIES_BY_ID, 5, false),
+    ...sliceAndDice(cfItemBasedRecommendation, MOVIES_BY_ID, 5, false),
+  ]
+    .sort((a, b) => a.movie.score - b.movie.score)
+    .map((item) => Number(item.movie.id));
 }
 
 // Utility
-
-export function addUserRating(userId, searchTitle, rating, MOVIES_IN_LIST) {
-  const { id, title } = getMovieIndexByTitle(MOVIES_IN_LIST, searchTitle);
-
-  return {
-    userId,
-    rating,
-    movieId: id,
-    title,
-  };
-}
-
 export function sliceAndDice(recommendations, MOVIES_BY_ID, count, onlyTitle) {
   recommendations = recommendations.filter(
     (recommendation) => MOVIES_BY_ID[recommendation.movieId],

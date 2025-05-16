@@ -9,11 +9,15 @@ import {
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { MoviesService } from './movies.service';
+import { UsersService } from 'src/users/users.service';
 
 @ApiBearerAuth()
 @Controller('movies')
 export class MoviesController {
-  constructor(private readonly movieService: MoviesService) {}
+  constructor(
+    private readonly movieService: MoviesService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @UseGuards(AuthGuard)
   @Get()
@@ -29,8 +33,9 @@ export class MoviesController {
 
   @UseGuards(AuthGuard)
   @Get('/recommendations')
-  getRecommendations() {
-    return this.movieService.findRecommendations();
+  getRecommendations(@Request() req) {
+    const user = this.usersService.findOne(req.user.username);
+    return this.movieService.findRecommendations(user!.userId);
   }
 
   @UseGuards(AuthGuard)

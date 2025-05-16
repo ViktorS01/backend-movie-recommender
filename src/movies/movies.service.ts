@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { Movie } from 'src/typeorm/entities/movies.entity';
+import { Rating } from 'src/typeorm/entities/rating.entity';
 import { MovieType } from 'src/movies/dto/movies.dto';
 
 import * as fs from 'fs';
@@ -13,7 +14,7 @@ import {
   init,
   moviesKeywordsPromise,
   moviesMetaDataPromise,
-  ratingsPromise,
+  softEval,
 } from 'src/strategies';
 
 @Injectable()
@@ -21,6 +22,8 @@ export class MoviesService {
   constructor(
     @InjectRepository(Movie)
     private moviesRepository: Repository<Movie>,
+    @InjectRepository(Rating)
+    private ratingsRepository: Repository<Rating>,
   ) {}
 
   async importMovies(): Promise<void> {
@@ -85,13 +88,60 @@ export class MoviesService {
     await this.moviesRepository.delete(id);
   }
 
-  async findRecommendations(): Promise<MovieType[]> {
-    Promise.all([
+  async findRecommendations(idUser: number): Promise<MovieType[]> {
+    const ratingsPromise = new Promise((resolve) => {
+      const res = this.ratingsRepository.find().then((ratings) =>
+        ratings.map((item) => {
+          return {
+            userId: String(item.userId),
+            movieId: String(item.movieId),
+            rating: String(item.rating),
+            timestamp: String(item.timestamp),
+          };
+        }),
+      );
+      resolve(res);
+    });
+
+    const [moviesMetaData, moviesKeywords, ratings] = await Promise.all([
       moviesMetaDataPromise,
       moviesKeywordsPromise,
       ratingsPromise,
-    ]).then(init);
+    ]);
 
-    return await this.moviesRepository.findBy({ id: 2 });
+    const lastRatedGoodMovieId =
+      Array.isArray(ratings) &&
+      ratings
+        .filter(
+          (item) => item.userId === String(idUser) && Number(item.rating) >= 3,
+        )
+        .sort((a, b) => a.timestamp - b.timestamp)[0].movieId;
+
+    const lastRatedGoodMovieTitle = lastRatedGoodMovieId
+      ? moviesMetaData[String(lastRatedGoodMovieId)]?.title
+      : undefined;
+
+    const recommendedMovieIds = init([
+      moviesMetaData,
+      moviesKeywords,
+      ratings,
+      idUser,
+      lastRatedGoodMovieTitle,
+    ]);
+
+    const movies = await this.moviesRepository.find({
+      where: {
+        id: In(recommendedMovieIds),
+      },
+    });
+
+    return movies.map((item) => {
+      return {
+        ...item,
+        production_companies: softEval(item.production_companies, []),
+        production_countries: softEval(item.production_countries, []),
+        genres: softEval(item.genres, []),
+      };
+    });
   }
 }
