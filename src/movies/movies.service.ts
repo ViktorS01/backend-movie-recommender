@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, MoreThan, Repository } from 'typeorm';
+import { ILike, In, MoreThan, Repository } from 'typeorm';
 
 import { Movie } from 'src/typeorm/entities/movies.entity';
 import { Rating } from 'src/typeorm/entities/rating.entity';
@@ -79,8 +79,10 @@ export class MoviesService {
     console.log('Movies imported successfully!');
   }
 
-  async findAll(idUser): Promise<MovieType[]> {
-    const movies = await this.moviesRepository.find();
+  async findAll(idUser, search): Promise<MovieType[]> {
+    const whereCondition = search ? { title: ILike(`%${search}%`) } : {};
+
+    const movies = await this.moviesRepository.find({ where: whereCondition });
 
     const userRatings = await this.ratingsRepository.find({
       where: {

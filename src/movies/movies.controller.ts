@@ -5,6 +5,7 @@ import {
   Param,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
@@ -22,9 +23,9 @@ export class MoviesController {
 
   @UseGuards(AuthGuard)
   @Get()
-  async getAll(@Request() req) {
+  async getAll(@Request() req, @Query('search') search?: string) {
     const user = this.usersService.findOne(req.user.username);
-    return await this.movieService.findAll(user!.userId);
+    return await this.movieService.findAll(user!.userId, search);
   }
 
   @UseGuards(AuthGuard)
