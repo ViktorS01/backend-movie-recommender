@@ -5,7 +5,7 @@ import { User } from 'src/users/dto/users.dto';
 export class UsersService {
   private readonly users: User[] = [
     {
-      userId: 1,
+      userId: 0,
       username: 'a@test.com',
       tag: 'IvanIvanov1986',
       password: 'root',

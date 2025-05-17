@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, MoreThan, Repository } from 'typeorm';
 
 import { Movie } from 'src/typeorm/entities/movies.entity';
 import { Rating } from 'src/typeorm/entities/rating.entity';
@@ -25,6 +25,16 @@ export class MoviesService {
     @InjectRepository(Rating)
     private ratingsRepository: Repository<Rating>,
   ) {}
+
+  // Вспомогательный метод для перемешивания массива
+  private shuffleArray<T>(array: T[]): T[] {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }
 
   async importMovies(): Promise<void> {
     const filePath = path.resolve('src/data/movies_metadata.csv');
@@ -95,6 +105,30 @@ export class MoviesService {
   }
 
   async findRecommendations(idUser: number) {
+    const userRatings = await this.ratingsRepository.find({
+      where: {
+        userId: idUser,
+      },
+    });
+
+    if (!userRatings.length) {
+      const popularMovies = await this.moviesRepository.find({
+        where: [
+          {
+            vote_average: MoreThan('8'),
+            vote_count: MoreThan('1000'),
+          },
+        ],
+        order: {
+          popularity: 'DESC',
+          release_date: 'DESC',
+        },
+      });
+
+      const shuffledMovies = this.shuffleArray(popularMovies);
+      return shuffledMovies.slice(0, 20).map((movie) => formattedMovie(movie));
+    }
+
     const ratingsPromise = new Promise((resolve) => {
       const res = this.ratingsRepository.find().then((ratings) =>
         ratings.map((item) => {
@@ -134,12 +168,6 @@ export class MoviesService {
       idUser,
       lastRatedGoodMovieTitle,
     ]);
-
-    const userRatings = await this.ratingsRepository.find({
-      where: {
-        userId: idUser,
-      },
-    });
 
     const recommendedMovies = await this.moviesRepository.find({
       where: {
