@@ -1,16 +1,21 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Request, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { AuthGuard } from './auth/auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { UsersService } from 'src/users/users.service';
 
 @ApiBearerAuth()
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @UseGuards(AuthGuard)
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  @Get('/profile')
+  getMyProfile(@Request() req) {
+    const user = this.usersService.findOne(req.user.username);
+    return this.appService.findProfile(user!);
   }
 }

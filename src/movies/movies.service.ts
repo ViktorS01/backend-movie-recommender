@@ -14,8 +14,8 @@ import {
   init,
   moviesKeywordsPromise,
   moviesMetaDataPromise,
-  softEval,
 } from 'src/strategies';
+import { formattedMovie } from 'src/utils/formattedMovie';
 
 @Injectable()
 export class MoviesService {
@@ -69,19 +69,25 @@ export class MoviesService {
     console.log('Movies imported successfully!');
   }
 
-  async findAll(
-    page: number = 1,
-    limit: number = 10,
-  ): Promise<{ data: MovieType[]; total: number }> {
-    const [data, total] = await this.moviesRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
+  async findAll(idUser): Promise<MovieType[]> {
+    const movies = await this.moviesRepository.find();
+
+    const userRatings = await this.ratingsRepository.find({
+      where: {
+        userId: idUser,
+      },
     });
 
-    return { data, total };
+    return movies.map((movie) =>
+      formattedMovie(
+        movie,
+        userRatings.find((rating) => rating.movieId === movie.id)?.rating,
+      ),
+    );
   }
   async findOne(id: number): Promise<MovieType | null> {
-    return await this.moviesRepository.findOneBy({ id });
+    const movie = await this.moviesRepository.findOneBy({ id });
+    return movie ? formattedMovie(movie) : null;
   }
 
   async remove(id: number): Promise<void> {
@@ -129,19 +135,46 @@ export class MoviesService {
       lastRatedGoodMovieTitle,
     ]);
 
-    const movies = await this.moviesRepository.find({
+    const userRatings = await this.ratingsRepository.find({
+      where: {
+        userId: idUser,
+      },
+    });
+
+    const recommendedMovies = await this.moviesRepository.find({
       where: {
         id: In(recommendedMovieIds),
       },
     });
 
-    return movies.map((item) => {
-      return {
-        ...item,
-        production_companies: softEval(item.production_companies, []),
-        production_countries: softEval(item.production_countries, []),
-        genres: softEval(item.genres, []),
-      };
+    return recommendedMovies.map((movie) => {
+      return formattedMovie(
+        movie,
+        userRatings.find((rating) => rating.movieId === movie.id)?.rating,
+      );
+    });
+  }
+
+  async findRatedMovies(idUser: number): Promise<MovieType[]> {
+    const userRatings = await this.ratingsRepository.find({
+      where: {
+        userId: idUser,
+      },
+    });
+
+    const movieIds = userRatings.map((rating) => rating.movieId);
+
+    const movies = await this.moviesRepository.find({
+      where: {
+        id: In(movieIds),
+      },
+    });
+
+    return movies.map((movie) => {
+      return formattedMovie(
+        movie,
+        userRatings.find((rating) => rating.movieId === movie.id)?.rating,
+      );
     });
   }
 }

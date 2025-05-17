@@ -28,6 +28,7 @@ import { Keywords } from 'src/typeorm/entities/keywords.entity';
       entities: [Movie, Rating, Keywords],
       synchronize: true,
     }),
+    TypeOrmModule.forFeature([Rating]),
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -9,7 +9,6 @@ async function bootstrap() {
     .setTitle('Movie Recommender')
     .setDescription('Movie Recommender API DOC')
     .setVersion('1.0')
-    .addTag('MovieRecommender')
     .addBearerAuth()
     .build();
 

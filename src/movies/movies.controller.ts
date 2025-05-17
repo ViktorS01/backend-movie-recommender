@@ -21,8 +21,9 @@ export class MoviesController {
 
   @UseGuards(AuthGuard)
   @Get()
-  getAll(@Param('page') page: number, @Param('limit') limit: number) {
-    return this.movieService.findAll(page, limit);
+  getAll(@Request() req) {
+    const user = this.usersService.findOne(req.user.username);
+    return this.movieService.findAll(user!.userId);
   }
 
   @UseGuards(AuthGuard)
@@ -36,6 +37,13 @@ export class MoviesController {
   getRecommendations(@Request() req) {
     const user = this.usersService.findOne(req.user.username);
     return this.movieService.findRecommendations(user!.userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('/rated')
+  getRated(@Request() req) {
+    const user = this.usersService.findOne(req.user.username);
+    return this.movieService.findRatedMovies(user!.userId);
   }
 
   @UseGuards(AuthGuard)
