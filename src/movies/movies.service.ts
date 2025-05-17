@@ -94,7 +94,7 @@ export class MoviesService {
     await this.moviesRepository.delete(id);
   }
 
-  async findRecommendations(idUser: number): Promise<MovieType[]> {
+  async findRecommendations(idUser: number) {
     const ratingsPromise = new Promise((resolve) => {
       const res = this.ratingsRepository.find().then((ratings) =>
         ratings.map((item) => {
@@ -147,12 +147,11 @@ export class MoviesService {
       },
     });
 
-    return recommendedMovies.map((movie) => {
-      return formattedMovie(
-        movie,
-        userRatings.find((rating) => rating.movieId === movie.id)?.rating,
-      );
-    });
+    const filtersMovie = recommendedMovies.filter(
+      (movie) => !userRatings.find((rating) => rating.movieId === movie.id),
+    );
+
+    return filtersMovie.map((movie) => formattedMovie(movie));
   }
 
   async findRatedMovies(idUser: number): Promise<MovieType[]> {

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Rating } from 'src/typeorm/entities/rating.entity';
+import { CreateRatingDTO } from 'src/rating/dto/rating.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse';
@@ -13,7 +14,6 @@ export class RatingService {
     private ratingsRepository: Repository<Rating>,
   ) {}
 
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   async importRatings(): Promise<void> {
     const filePath = path.resolve('src/data/ratings_small.csv');
     const fileStream = fs.createReadStream(filePath);
@@ -52,7 +52,32 @@ export class RatingService {
     return await this.ratingsRepository.findOneBy({ id });
   }
 
-  async remove(id: number): Promise<void> {
-    await this.ratingsRepository.delete(id);
+  async remove(movieId: number, userId: number): Promise<void> {
+    await this.ratingsRepository.delete({
+      movieId: movieId,
+      userId: userId,
+    });
+  }
+
+  async addRating(rating: CreateRatingDTO, userId: number) {
+    const existingRating = await this.ratingsRepository.findOne({
+      where: {
+        userId: userId,
+        movieId: rating.movieId,
+      },
+    });
+
+    if (existingRating) {
+      existingRating.rating = rating.rating;
+      existingRating.timestamp = Math.floor(Date.now() / 1000);
+      await this.ratingsRepository.save(existingRating);
+    } else {
+      const newRating = new Rating();
+      newRating.userId = userId;
+      newRating.movieId = rating.movieId;
+      newRating.rating = rating.rating;
+      newRating.timestamp = Math.floor(Date.now() / 1000);
+      await this.ratingsRepository.save(newRating);
+    }
   }
 }
