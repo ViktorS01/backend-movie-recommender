@@ -147,14 +147,15 @@ export function init([moviesMetaData, moviesKeywords, ratings, userId, title]) {
     ...sliceAndDice(
       linearRegressionBasedRecommendation,
       MOVIES_BY_ID,
-      10,
+      20,
       false,
     ),
     ...sliceAndDice(contentBasedRecommendation, MOVIES_BY_ID, 10, false),
     ...sliceAndDice(cfUserBasedRecommendation, MOVIES_BY_ID, 10, false),
     ...sliceAndDice(cfItemBasedRecommendation, MOVIES_BY_ID, 10, false),
   ]
-    .sort((a, b) => a.movie.score - b.movie.score)
+    .filter((item) => typeof item.score === 'number' && !isNaN(item.score))
+    .sort((a, b) => a.score - b.score)
     .map((item) => Number(item.movie.id));
 }
 

@@ -152,7 +152,7 @@ export class MoviesService {
         .filter(
           (item) => item.userId === String(userId) && Number(item.rating) >= 3,
         )
-        .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))[0].movieId;
+        .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))[0]?.movieId;
 
     const lastRatedGoodMovieTitle = lastRatedGoodMovieId
       ? moviesMetaData[String(lastRatedGoodMovieId)]?.title
@@ -176,7 +176,7 @@ export class MoviesService {
       (movie) => !userRatings.find((rating) => rating.movieId === movie.id),
     );
 
-    return filtersMovie.map((movie) => formattedMovie(movie));
+    return filtersMovie.slice(0, 18).map((movie) => formattedMovie(movie));
   }
 
   async findRatedMovies(idUser: number): Promise<MovieType[]> {
