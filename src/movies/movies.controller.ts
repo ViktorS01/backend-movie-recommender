@@ -6,6 +6,7 @@ import {
   UseGuards,
   Request,
   Query,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
@@ -25,7 +26,9 @@ export class MoviesController {
   @Get()
   async getAll(@Request() req, @Query('search') search?: string) {
     const user = this.usersService.findOne(req.user.username);
-    return await this.movieService.findAll(user!.userId, search);
+    if (!user) throw new NotFoundException('User not found');
+
+    return await this.movieService.findAll(user.userId, search);
   }
 
   @UseGuards(AuthGuard)
@@ -38,14 +41,18 @@ export class MoviesController {
   @Get('/recommendations')
   async getRecommendations(@Request() req): Promise<Array<MovieType>> {
     const user = this.usersService.findOne(req.user.username);
-    return await this.movieService.findRecommendations(user!.userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    return await this.movieService.findRecommendations(user.userId);
   }
 
   @UseGuards(AuthGuard)
   @Get('/rated')
   async getRated(@Request() req) {
     const user = this.usersService.findOne(req.user.username);
-    return await this.movieService.findRatedMovies(user!.userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    return await this.movieService.findRatedMovies(user.userId);
   }
 
   @UseGuards(AuthGuard)

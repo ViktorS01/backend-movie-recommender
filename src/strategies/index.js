@@ -8,7 +8,6 @@ import {
   predictWithCfItemBased,
   predictWithCfUserBased,
 } from './collaborativeFiltering';
-import { evaluateStrategy } from './evaluate';
 
 let MOVIES_META_DATA = {};
 let MOVIES_KEYWORDS = {};
@@ -55,13 +54,7 @@ function fromKeywordsFile(row) {
   };
 }
 
-export function init([
-  moviesMetaData,
-  moviesKeywords,
-  ratings,
-  ME_USER_ID,
-  title,
-]) {
+export function init([moviesMetaData, moviesKeywords, ratings, userId, title]) {
   /* ------------ */
   //  Preparation //
   /* -------------*/
@@ -83,7 +76,7 @@ export function init([
   console.log('(A) Linear Regression Prediction ... \n');
 
   console.log('(1) Training \n');
-  const meUserRatings = ratingsGroupedByUser[ME_USER_ID];
+  const meUserRatings = ratingsGroupedByUser[userId];
   const linearRegressionBasedRecommendation = predictWithLinearRegression(
     X,
     MOVIES_IN_LIST,
@@ -125,7 +118,7 @@ export function init([
   const cfUserBasedRecommendation = predictWithCfUserBased(
     ratingsGroupedByUser,
     ratingsGroupedByMovie,
-    ME_USER_ID,
+    userId,
   );
 
   console.log('(2) Prediction \n');
@@ -144,58 +137,22 @@ export function init([
   const cfItemBasedRecommendation = predictWithCfItemBased(
     ratingsGroupedByUser,
     ratingsGroupedByMovie,
-    ME_USER_ID,
+    userId,
   );
 
   console.log('(2) Prediction \n');
   console.log(sliceAndDice(cfItemBasedRecommendation, MOVIES_BY_ID, 10, true));
 
-  evaluateStrategy({
-    strategyName: 'Linear Regression',
-    recommended: linearRegressionBasedRecommendation,
-    ratingsGroupedByUser,
-    userId: ME_USER_ID,
-    moviesById: MOVIES_BY_ID,
-    k: 10,
-  });
-
-  evaluateStrategy({
-    strategyName: 'Content-Based',
-    recommended: contentBasedRecommendation,
-    ratingsGroupedByUser,
-    userId: ME_USER_ID,
-    moviesById: MOVIES_BY_ID,
-    k: 10,
-  });
-
-  evaluateStrategy({
-    strategyName: 'CF User-Based',
-    recommended: cfUserBasedRecommendation,
-    ratingsGroupedByUser,
-    userId: ME_USER_ID,
-    moviesById: MOVIES_BY_ID,
-    k: 10,
-  });
-
-  evaluateStrategy({
-    strategyName: 'CF Item-Based',
-    recommended: cfItemBasedRecommendation,
-    ratingsGroupedByUser,
-    userId: ME_USER_ID,
-    moviesById: MOVIES_BY_ID,
-    k: 10,
-  });
-
   return [
     ...sliceAndDice(
       linearRegressionBasedRecommendation,
       MOVIES_BY_ID,
-      5,
+      10,
       false,
     ),
-    ...sliceAndDice(contentBasedRecommendation, MOVIES_BY_ID, 5, false),
-    ...sliceAndDice(cfUserBasedRecommendation, MOVIES_BY_ID, 5, false),
-    ...sliceAndDice(cfItemBasedRecommendation, MOVIES_BY_ID, 5, false),
+    ...sliceAndDice(contentBasedRecommendation, MOVIES_BY_ID, 10, false),
+    ...sliceAndDice(cfUserBasedRecommendation, MOVIES_BY_ID, 10, false),
+    ...sliceAndDice(cfItemBasedRecommendation, MOVIES_BY_ID, 10, false),
   ]
     .sort((a, b) => a.movie.score - b.movie.score)
     .map((item) => Number(item.movie.id));

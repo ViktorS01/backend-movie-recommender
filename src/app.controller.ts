@@ -1,4 +1,10 @@
-import { Controller, Get, Request, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { AuthGuard } from './auth/auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -16,6 +22,8 @@ export class AppController {
   @Get('/profile')
   getMyProfile(@Request() req) {
     const user = this.usersService.findOne(req.user.username);
-    return this.appService.findProfile(user!);
+    if (!user) throw new NotFoundException('User not found');
+
+    return this.appService.findProfile(user);
   }
 }

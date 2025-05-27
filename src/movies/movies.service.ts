@@ -106,10 +106,10 @@ export class MoviesService {
     await this.moviesRepository.delete(id);
   }
 
-  async findRecommendations(idUser: number) {
+  async findRecommendations(userId: number) {
     const userRatings = await this.ratingsRepository.find({
       where: {
-        userId: idUser,
+        userId,
       },
     });
 
@@ -131,33 +131,28 @@ export class MoviesService {
       return shuffledMovies.slice(0, 20).map((movie) => formattedMovie(movie));
     }
 
-    const ratingsPromise = new Promise((resolve) => {
-      const res = this.ratingsRepository.find().then((ratings) =>
-        ratings.map((item) => {
-          return {
-            userId: String(item.userId),
-            movieId: String(item.movieId),
-            rating: String(item.rating),
-            timestamp: String(item.timestamp),
-          };
-        }),
-      );
-      resolve(res);
-    });
-
+    const getRatings = async () => {
+      const ratings = await this.ratingsRepository.find();
+      return ratings.map((item) => ({
+        userId: String(item.userId),
+        movieId: String(item.movieId),
+        rating: String(item.rating),
+        timestamp: String(item.timestamp),
+      }));
+    };
     const [moviesMetaData, moviesKeywords, ratings] = await Promise.all([
       moviesMetaDataPromise,
       moviesKeywordsPromise,
-      ratingsPromise,
+      getRatings(),
     ]);
 
     const lastRatedGoodMovieId =
       Array.isArray(ratings) &&
       ratings
         .filter(
-          (item) => item.userId === String(idUser) && Number(item.rating) >= 3,
+          (item) => item.userId === String(userId) && Number(item.rating) >= 3,
         )
-        .sort((a, b) => a.timestamp - b.timestamp)[0].movieId;
+        .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))[0].movieId;
 
     const lastRatedGoodMovieTitle = lastRatedGoodMovieId
       ? moviesMetaData[String(lastRatedGoodMovieId)]?.title
@@ -167,7 +162,7 @@ export class MoviesService {
       moviesMetaData,
       moviesKeywords,
       ratings,
-      idUser,
+      userId,
       lastRatedGoodMovieTitle,
     ]);
 

@@ -39,7 +39,7 @@ export class AppService {
       tag: user.tag,
       rating: {
         quantity: userRatings.length,
-        average: average || 0,
+        average: Number(average.toFixed(2)) || 0,
       },
     };
   }

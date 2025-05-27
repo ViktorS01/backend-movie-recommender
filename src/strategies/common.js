@@ -17,7 +17,7 @@ export function getCosineSimilarityRowVector(matrix, index) {
 export function getMovieIndexByTitle(MOVIES_IN_LIST, query) {
   const index = MOVIES_IN_LIST.map((movie) => movie.title).indexOf(query);
 
-  if (!index) {
+  if (index === -1) {
     throw new Error('Movie not found');
   }
 

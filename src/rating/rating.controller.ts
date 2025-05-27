@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Put,
   Request,
@@ -50,7 +51,9 @@ export class RatingController {
   @Delete(':id')
   async delete(@Param('id') movieId: number, @Request() req) {
     const user = this.usersService.findOne(req.user.username);
-    await this.ratingService.remove(movieId, user!.userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.ratingService.remove(movieId, user.userId);
   }
 
   @UseGuards(AuthGuard)
@@ -79,6 +82,8 @@ export class RatingController {
     @Request() req,
   ) {
     const user = this.usersService.findOne(req.user.username);
-    return await this.ratingService.addRating(rating, user!.userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    return await this.ratingService.addRating(rating, user.userId);
   }
 }
